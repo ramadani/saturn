@@ -10,8 +10,12 @@ type Emitter interface {
 
 type Event interface {
 	On(ctx context.Context, header string, listeners []Listener) error
-	Forget(ctx context.Context, header string) error
 	Listeners(ctx context.Context, header string) ([]Listener, error)
+}
+
+type EventListener interface {
+	Event
+	Listen(ctx context.Context) error
 }
 
 type Dispatchable interface {
