@@ -6,14 +6,14 @@ import (
 	"strings"
 )
 
-type eventListeners map[string][]Listener
+type eventListenersMap map[string][]Listener
 
 type localEmitter struct {
 	event Event
 }
 
 type localEvent struct {
-	evLts eventListeners
+	evLst eventListenersMap
 }
 
 type emitResult struct {
@@ -25,6 +25,10 @@ func (e *localEmitter) Emit(ctx context.Context, dispatchable Dispatchable) (err
 	header := dispatchable.Header()
 	listeners, err := e.event.Listeners(ctx, header)
 	if err != nil {
+		return
+	}
+
+	if len(listeners) == 0 {
 		return
 	}
 
@@ -70,23 +74,18 @@ func (e *localEmitter) Emit(ctx context.Context, dispatchable Dispatchable) (err
 }
 
 func (e *localEvent) On(_ context.Context, header string, listeners []Listener) (err error) {
-	if lts, ok := e.evLts[header]; ok {
-		e.evLts[header] = append(lts, listeners...)
+	if lts, ok := e.evLst[header]; ok {
+		e.evLst[header] = append(lts, listeners...)
 	} else {
-		e.evLts[header] = listeners
+		e.evLst[header] = listeners
 	}
-	return
-}
-
-func (e *localEvent) Forget(_ context.Context, header string) (err error) {
-	delete(e.evLts, header)
 	return
 }
 
 func (e *localEvent) Listeners(_ context.Context, header string) (res []Listener, err error) {
 	res = make([]Listener, 0)
 
-	if lts, ok := e.evLts[header]; ok {
+	if lts, ok := e.evLst[header]; ok {
 		res = lts
 	}
 	return
@@ -96,10 +95,10 @@ func NewLocalEmitter(ev Event) Emitter {
 	return &localEmitter{event: ev}
 }
 
-func NewLocalEvent(evLts eventListeners) Event {
-	return &localEvent{evLts: evLts}
+func NewLocalEvent(evLts eventListenersMap) Event {
+	return &localEvent{evLst: evLts}
 }
 
 func DefaultLocalEvent() Event {
-	return NewLocalEvent(make(eventListeners))
+	return NewLocalEvent(make(eventListenersMap))
 }
